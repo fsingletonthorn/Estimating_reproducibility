@@ -1,0 +1,73 @@
+---
+title: "Untitled"
+author: "Felix Singleton Thorn"
+date: "12/06/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data cleaning
+
+```{r cars}
+summary(cars)
+```
+
+## 
+
+```{r analysis_of_hetrogeneity, echo=FALSE}
+
+### Analysis 4
+# Running a meta analysis of each study to then extract a hetrogeneity test for each pair of studies
+out <- list()
+outFE <- list()
+allData$QEp <- NA
+FEQEp <- allData$QEp
+
+for(i in 1:nrow(allData)) {
+  out[[i]] <- metafor::rma(  yi = c(allData$fis.o[i], allData$fis.r[i]), sei = c(allData$seFishAprox.o[i], allData$seFishAprox.r[i]),method = "REML" )
+  outFE[[i]] <- metafor::rma(  yi = c(allData$fis.o[i], allData$fis.r[i]), sei = c(allData$seFishAprox.o[i], allData$seFishAprox.r[i]),method = "FE" )
+  allData$QEp[i] <- out[[i]]$QEp
+  FEQEp[i] <- out[[i]]$QEp
+}
+
+# random effects and fixed effects both should match in each case (and do, r)
+# To check that FE and RE are equal 
+QTestsAgree <- all((FEQEp <= .05) ==  (allData$QEp <= .05))
+
+# Getting rid of studies if p < .05
+allData$QEpSig <- allData$QEp < .05
+
+analysis_4 <- rma.mv(yi = fisherZDiff, V = seDifference.ro^2, random =  ~ 1|source/authorsTitle.o/id, data = allData[which(!allData$QEpSig),])
+# Checking if anything changes excluding those where the SE is approximated
+analysis_4_valid_SE <-  rma.mv(yi = fisherZDiff, V = seDifference.ro^2, random =  ~ 1|source/authorsTitle.o/id, data = allData[which(!allData$QEpSig & !is.na(allData$seFish.o) & !is.na(allData$seFish.r)),])
+validSEDiff[4] <- analysis_4$b - analysis_4_valid_SE$b
+
+# brining these together
+modRes <- data.frame( modelN = REMod$k, modelEstimate = REMod$b, MLM95lb = REMod$ci.lb, MLM95ub = REMod$ci.ub, row.names = "Overall")
+modRes1 <- data.frame(modelN = REModOnlySigR$k, modelEstimate = REModOnlySigR$b, MLM95lb = REModOnlySigR$ci.lb, MLM95ub = REModOnlySigR$ci.ub, row.names = "StatisticalSignificance")
+modRes2 <- data.frame(modelN = REModNonequiv$k, modelEstimate = REModNonequiv$b, MLM95lb = REModNonequiv$ci.lb, MLM95ub = REModNonequiv$ci.ub, row.names = "Nonequivalence")
+
+modSumaries <- rbind(modRes, modRes1, modRes2)
+# Estiating the degree of effect size change as a proportion of the average effect size in psychology 
+modSumaries$`Estimated % attenuation` <- (modSumaries$modelEstimate/mean(allData$fis.o, na.rm = T))*100
+modSumaries$`LB % attenuation` <- (modSumaries$MLM95lb/mean(allData$fis.o, na.rm = T)*100)
+modSumaries$`UB % attenuation` <- (modSumaries$MLM95ub/mean(allData$fis.o, na.rm = T)*100)
+modSumariesR <- modSumaries
+# converting to z
+modSumariesR[2:4] <- ztor(modSumaries[2:4])
+
+niceModelSums <- lapply(X = list("All Data" = REMod, "Non-equivalent studies" = REModNonequiv, "Only Signficant replications" = REModOnlySigR), niceMLMESum)
+
+# 
+tableAllEstimates <- merge.data.frame(tableReductions, modSumaries, by = "row.names", sort = F)
+
+tableAverageDecrease <- allData %>%
+  group_by(source) %>%
+  dplyr::summarise(mean=mean(fisherZDiff, na.rm=T), sd=sd(fisherZDiff, na.rm=T))
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
