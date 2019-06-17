@@ -12,10 +12,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Data cleaning
 
 ```{r cars}
-summary(cars)
+
+
+  
 ```
 
 ## 
+
+We will need to get the data from all of the Many Labs and reanalyse 
+Methods of doing so many labs 1: 
+https://github.com/ManyLabsOpenScience/ManyLabs1/blob/master/ManyLabs_Heterogeneity.R
+Many labs 2: 
+https://github.com/ManyLabsOpenScience/ManyLabs2/blob/master/Script%20-%20Meta%20analyses/ML2_meta_analyses_simple.R
+Many labs 3:
+https://osf.io/ct89g/
+
 
 ```{r analysis_of_hetrogeneity, echo=FALSE}
 
